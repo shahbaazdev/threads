@@ -1,19 +1,17 @@
-import Image from "next/image";
 import { currentUser } from "@clerk/nextjs";
+import Image from "next/image";
 import { ProfileHeader } from "../../../../../components/shared";
-import { fetchCommunityDetails } from "../../../../../lib/actions/community.actions";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "../../../../../components/ui";
+import { fetchCommunityDetails } from "../../../../../lib/actions/community.actions";
 
 import { UserCard } from "../../../../../components/cards";
-import { communityTabs } from "../../../../../contstant";
 import ThreadsTab from "../../../../../components/shared/threads-tab/threads-tab";
-
-// import ProfileHeader from "@/components/shared/ProfileHeader";
+import { communityTabs } from "../../../../../contstant";
 
 async function Page({ params }: { params: { id: string } }) {
   const user = await currentUser();
@@ -57,7 +55,6 @@ async function Page({ params }: { params: { id: string } }) {
           </TabsList>
 
           <TabsContent value="threads" className="w-full text-light-1">
-            {/* @ts-ignore */}
             <ThreadsTab
               currentUserId={user.id}
               accountId={communityDetails._id}
@@ -81,7 +78,6 @@ async function Page({ params }: { params: { id: string } }) {
           </TabsContent>
 
           <TabsContent value="requests" className="w-full text-light-1">
-            {/* @ts-ignore */}
             <ThreadsTab
               currentUserId={user.id}
               accountId={communityDetails._id}

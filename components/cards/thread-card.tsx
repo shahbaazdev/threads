@@ -38,8 +38,6 @@ function ThreadCard({
   comments,
   isComment,
 }: IThreadProps) {
-  console.log("community", community);
-
   return (
     <article
       className={`flex w-full flex-col rounded-xl ${
