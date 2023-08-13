@@ -8,40 +8,43 @@ import Community from "../models/community.modal";
 import Thread from "../models/thread.modal";
 
 export async function fetchPosts(pageNumber = 1, pageSize = 20) {
-  try {
-    await connectToDB();
+  connectToDB();
 
-    const skipAmount = (pageNumber - 1) * pageSize;
+  // Calculate the number of posts to skip based on the page number and page size.
+  const skipAmount = (pageNumber - 1) * pageSize;
 
-    const postsQuery = Thread.find({ parentId: { $in: [null, undefined] } })
-      .sort({ createdAt: "desc" })
-      .skip(skipAmount)
-      .limit(pageSize)
-      .populate({
-        path: "author",
+  // Create a query to fetch the posts that have no parent (top-level threads) (a thread that is not a comment/reply).
+  const postsQuery = Thread.find({ parentId: { $in: [null, undefined] } })
+    .sort({ createdAt: "desc" })
+    .skip(skipAmount)
+    .limit(pageSize)
+    .populate({
+      path: "author",
+      model: User,
+    })
+    .populate({
+      path: "community",
+      model: Community,
+    })
+    .populate({
+      path: "children", // Populate the children field
+      populate: {
+        path: "author", // Populate the author field within children
         model: User,
-      })
-      .populate({
-        path: "children", // Populate the children field
-        populate: {
-          path: "author", // Populate the author field within children
-          model: User,
-          select: "_id name parentId image", // Select only _id and username fields of the author
-        },
-      });
+        select: "_id name parentId image", // Select only _id and username fields of the author
+      },
+    });
 
-    const totalPostsCount = await Thread.countDocuments({
-      parentId: { $in: [null, undefined] },
-    }); // Get the total count of posts
+  // Count the total number of top-level posts (threads) i.e., threads that are not comments.
+  const totalPostsCount = await Thread.countDocuments({
+    parentId: { $in: [null, undefined] },
+  }); // Get the total count of posts
 
-    const posts = await postsQuery.exec();
+  const posts = await postsQuery.exec();
 
-    const isNext = totalPostsCount > skipAmount + posts.length;
+  const isNext = totalPostsCount > skipAmount + posts.length;
 
-    return { posts, isNext };
-  } catch (e) {
-    throw new Error("Unable to fetch posts");
-  }
+  return { posts, isNext };
 }
 
 interface Params {
@@ -68,7 +71,7 @@ export async function createThread({
     const createdThread = await Thread.create({
       text,
       author,
-      community: communityIdObject, // Assign communityId if provided, or leave it null for personal account
+      community: communityIdObject, // Assign communityId if provided, or leave it null for personal
     });
 
     // Update User model
@@ -76,12 +79,12 @@ export async function createThread({
       $push: { threads: createdThread._id },
     });
 
-    // if (communityIdObject) {
-    //   // Update Community model
-    //   await Community.findByIdAndUpdate(communityIdObject, {
-    //     $push: { threads: createdThread._id },
-    //   });
-    // }
+    if (communityIdObject) {
+      // Update Community model
+      await Community.findByIdAndUpdate(communityIdObject, {
+        $push: { threads: createdThread._id },
+      });
+    }
 
     revalidatePath(path);
   } catch (error: any) {
@@ -180,15 +183,15 @@ export async function fetchThreadById(threadId: string) {
             model: User,
             select: "_id id name parentId image", // Select only _id and username fields of the author
           },
-          // {
-          //   path: "children", // Populate the children field within children
-          //   model: Thread, // The model of the nested children (assuming it's the same "Thread" model)
-          //   populate: {
-          //     path: "author", // Populate the author field within nested children
-          //     model: User,
-          //     select: "_id id name parentId image", // Select only _id and username fields of the author
-          //   },
-          // },
+          {
+            path: "children", // Populate the children field within children
+            model: Thread, // The model of the nested children (assuming it's the same "Thread" model)
+            populate: {
+              path: "author", // Populate the author field within nested children
+              model: User,
+              select: "_id id name parentId image", // Select only _id and username fields of the author
+            },
+          },
         ],
       })
       .exec();
@@ -236,33 +239,5 @@ export async function addCommentToThread(
   } catch (err) {
     console.error("Error while adding comment:", err);
     throw new Error("Unable to add comment");
-  }
-}
-
-export async function getActivities(userId: string) {
-  try {
-    connectToDB();
-    // find the threads created by the user
-    const userThreads = await Thread.find({ author: userId });
-
-    // collect all the child thread ids (replies)
-    const childThreadIds = userThreads.reduce((acc, userThread) => {
-      return acc.concat(userThread.children);
-    }, []);
-
-    // Find and return the child threads (replies) excluding the ones created by the same user
-    const replies = await Thread.find({
-      _id: { $in: childThreadIds },
-      author: { $ne: userId }, // Exclude threads authored by the same user
-    }).populate({
-      path: "author",
-      model: User,
-      select: "name image _id",
-    });
-
-    return replies;
-  } catch (error) {
-    console.error("Error fetching replies: ", error);
-    throw error;
   }
 }

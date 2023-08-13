@@ -1,7 +1,6 @@
 import { currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { fetchUser } from "../../../../lib/actions/user.actions";
-import { getActivities } from "../../../../lib/actions/thread.action";
+import { fetchUser, getActivity } from "../../../../lib/actions/user.actions";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -13,7 +12,7 @@ async function Page() {
   if (!userInfo?.onboarded) redirect("/onboarding");
 
   // get all activity
-  const activites = await getActivities(userInfo._id);
+  const activites = await getActivity(userInfo._id);
 
   return (
     <section>

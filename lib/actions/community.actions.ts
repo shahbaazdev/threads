@@ -2,10 +2,10 @@
 
 import { FilterQuery, SortOrder } from "mongoose";
 
-import { connectToDB } from "../mongoose";
-import User from "../models/user.modale";
 import Community from "../models/community.modal";
 import Thread from "../models/thread.modal";
+import User from "../models/user.modale";
+import { connectToDB } from "../mongoose";
 
 export async function createCommunity(
   id: string,
@@ -35,7 +35,6 @@ export async function createCommunity(
     });
 
     const createdCommunity = await newCommunity.save();
-
     // Update User model
     user.communities.push(createdCommunity._id);
     await user.save();
