@@ -89,73 +89,73 @@ export async function createThread({
   }
 }
 
-// async function fetchAllChildThreads(threadId: string): Promise<any[]> {
-//   const childThreads = await Thread.find({ parentId: threadId });
+async function fetchAllChildThreads(threadId: string): Promise<any[]> {
+  const childThreads = await Thread.find({ parentId: threadId });
 
-//   const descendantThreads = [];
-//   for (const childThread of childThreads) {
-//     const descendants = await fetchAllChildThreads(childThread._id);
-//     descendantThreads.push(childThread, ...descendants);
-//   }
+  const descendantThreads = [];
+  for (const childThread of childThreads) {
+    const descendants = await fetchAllChildThreads(childThread._id);
+    descendantThreads.push(childThread, ...descendants);
+  }
 
-//   return descendantThreads;
-// }
+  return descendantThreads;
+}
 
-// export async function deleteThread(id: string, path: string): Promise<void> {
-//   try {
-//     connectToDB();
+export async function deleteThread(id: string, path: string): Promise<void> {
+  try {
+    connectToDB();
 
-//     // Find the thread to be deleted (the main thread)
-//     const mainThread = await Thread.findById(id).populate("author community");
+    // Find the thread to be deleted (the main thread)
+    const mainThread = await Thread.findById(id).populate("author community");
 
-//     if (!mainThread) {
-//       throw new Error("Thread not found");
-//     }
+    if (!mainThread) {
+      throw new Error("Thread not found");
+    }
 
-//     // Fetch all child threads and their descendants recursively
-//     const descendantThreads = await fetchAllChildThreads(id);
+    // Fetch all child threads and their descendants recursively
+    const descendantThreads = await fetchAllChildThreads(id);
 
-//     // Get all descendant thread IDs including the main thread ID and child thread IDs
-//     const descendantThreadIds = [
-//       id,
-//       ...descendantThreads.map((thread) => thread._id),
-//     ];
+    // Get all descendant thread IDs including the main thread ID and child thread IDs
+    const descendantThreadIds = [
+      id,
+      ...descendantThreads.map((thread) => thread._id),
+    ];
 
-//     // Extract the authorIds and communityIds to update User and Community models respectively
-//     const uniqueAuthorIds = new Set(
-//       [
-//         ...descendantThreads.map((thread) => thread.author?._id?.toString()), // Use optional chaining to handle possible undefined values
-//         mainThread.author?._id?.toString(),
-//       ].filter((id) => id !== undefined)
-//     );
+    // Extract the authorIds and communityIds to update User and Community models respectively
+    const uniqueAuthorIds = new Set(
+      [
+        ...descendantThreads.map((thread) => thread.author?._id?.toString()), // Use optional chaining to handle possible undefined values
+        mainThread.author?._id?.toString(),
+      ].filter((id) => id !== undefined)
+    );
 
-//     const uniqueCommunityIds = new Set(
-//       [
-//         ...descendantThreads.map((thread) => thread.community?._id?.toString()), // Use optional chaining to handle possible undefined values
-//         mainThread.community?._id?.toString(),
-//       ].filter((id) => id !== undefined)
-//     );
+    const uniqueCommunityIds = new Set(
+      [
+        ...descendantThreads.map((thread) => thread.community?._id?.toString()), // Use optional chaining to handle possible undefined values
+        mainThread.community?._id?.toString(),
+      ].filter((id) => id !== undefined)
+    );
 
-//     // Recursively delete child threads and their descendants
-//     await Thread.deleteMany({ _id: { $in: descendantThreadIds } });
+    // Recursively delete child threads and their descendants
+    await Thread.deleteMany({ _id: { $in: descendantThreadIds } });
 
-//     // Update User model
-//     await User.updateMany(
-//       { _id: { $in: Array.from(uniqueAuthorIds) } },
-//       { $pull: { threads: { $in: descendantThreadIds } } }
-//     );
+    // Update User model
+    await User.updateMany(
+      { _id: { $in: Array.from(uniqueAuthorIds) } },
+      { $pull: { threads: { $in: descendantThreadIds } } }
+    );
 
-//     // Update Community model
-//     await Community.updateMany(
-//       { _id: { $in: Array.from(uniqueCommunityIds) } },
-//       { $pull: { threads: { $in: descendantThreadIds } } }
-//     );
+    // Update Community model
+    await Community.updateMany(
+      { _id: { $in: Array.from(uniqueCommunityIds) } },
+      { $pull: { threads: { $in: descendantThreadIds } } }
+    );
 
-//     revalidatePath(path);
-//   } catch (error: any) {
-//     throw new Error(`Failed to delete thread: ${error.message}`);
-//   }
-// }
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to delete thread: ${error.message}`);
+  }
+}
 
 export async function fetchThreadById(threadId: string) {
   connectToDB();
@@ -236,5 +236,33 @@ export async function addCommentToThread(
   } catch (err) {
     console.error("Error while adding comment:", err);
     throw new Error("Unable to add comment");
+  }
+}
+
+export async function getActivities(userId: string) {
+  try {
+    connectToDB();
+    // find the threads created by the user
+    const userThreads = await Thread.find({ author: userId });
+
+    // collect all the child thread ids (replies)
+    const childThreadIds = userThreads.reduce((acc, userThread) => {
+      return acc.concat(userThread.children);
+    }, []);
+
+    // Find and return the child threads (replies) excluding the ones created by the same user
+    const replies = await Thread.find({
+      _id: { $in: childThreadIds },
+      author: { $ne: userId }, // Exclude threads authored by the same user
+    }).populate({
+      path: "author",
+      model: User,
+      select: "name image _id",
+    });
+
+    return replies;
+  } catch (error) {
+    console.error("Error fetching replies: ", error);
+    throw error;
   }
 }

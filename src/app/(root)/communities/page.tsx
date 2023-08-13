@@ -1,5 +1,5 @@
 const Page = () => {
-  return <h2 className="head-text">Communities</h2>;
+  return <h2 className="head-text">Activity</h2>;
 };
 
 export default Page;

@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDateString } from "../../lib/utils";
-
-// import DeleteThread from "../forms/DeleteThread";
+import { DeleteThread } from "../forms";
 
 export interface IThreadProps {
   id: string;
@@ -48,7 +47,7 @@ function ThreadCard({
       <div className="flex items-start justify-between">
         <div className="flex w-full flex-1 flex-row gap-4">
           <div className="flex flex-col items-center">
-            <Link href={`/profile/${author.id}`} className="relative h-8 w-8">
+            <Link href={`/profile/${author.id}`} className="relative h-11 w-11">
               <Image
                 src={author.image}
                 alt="user_community_image"
@@ -62,7 +61,7 @@ function ThreadCard({
 
           <div className="flex w-full flex-col">
             <Link href={`/profile/${author.id}`} className="w-fit">
-              <h4 className="cursor-pointer  text-base-semibold text-light-1">
+              <h4 className="cursor-pointer text-base-semibold text-light-1">
                 {author.name}
               </h4>
             </Link>
@@ -103,7 +102,7 @@ function ThreadCard({
                 />
               </div>
 
-              {isComment && comments?.length > 0 && (
+              {isComment && comments.length > 0 && (
                 <Link href={`/thread/${id}`}>
                   <p className="mt-1 text-subtle-medium text-gray-1">
                     {comments.length} repl{comments.length > 1 ? "ies" : "y"}
@@ -114,13 +113,13 @@ function ThreadCard({
           </div>
         </div>
 
-        {/* <DeleteThread
+        <DeleteThread
           threadId={JSON.stringify(id)}
           currentUserId={currentUserId}
           authorId={author.id}
           parentId={parentId}
           isComment={isComment}
-        /> */}
+        />
       </div>
 
       {!isComment && comments?.length > 0 && (
